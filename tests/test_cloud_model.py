@@ -3,7 +3,7 @@ import sqlite3
 import unittest
 
 from lsst.sims.cloudModel import CloudModel
-from lsst.sims.cloudModel import TimeHandler
+from lsst.sims.utils import TimeHandler
 
 class TestCloudModel(unittest.TestCase):
 
