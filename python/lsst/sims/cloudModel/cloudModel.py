@@ -72,7 +72,7 @@ class CloudModel(object):
             which will use the database stored in the module ($SIMS_CLOUDMODEL_DIR/data/cloud.db).
         """
         self.cloud_db = cloud_db
-        if self.cloud_db is None:
+        if self.cloud_db is None or self.cloud_db is "":
             self.cloud_db = os.path.join(getPackageDir('sims_cloudModel'), 'data', 'cloud.db')
         with sqlite3.connect(self.cloud_db) as conn:
             cur = conn.cursor()
