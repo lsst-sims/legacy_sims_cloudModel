@@ -14,15 +14,13 @@ class CloudModel(object):
     This class deals with the cloud information that was previously produced for
     OpSim version 3.
 
-    Parameters                                                                                                    
-    ----------                                                                                                    
+    Parameters
+    ----------
     time_handler : :class:`lsst.sims.utils.TimeHandler`
         The instance of the simulation time handler.
     """
-    def __init__(self, time_handler, cloud_db=None):
-        self.cloud_db = cloud_db
-        if self.cloud_db is None:
-            self.cloud_db = os.path.join(getPackageDir('sims_cloudModel'), 'data', 'cloud.db')
+    def __init__(self, time_handler):
+        self.cloud_db = None
         model_time_start = datetime(time_handler.initial_dt.year, 1, 1)
         self.offset = time_handler.time_since_given_datetime(model_time_start,
                                                              reverse=True)
@@ -53,7 +51,7 @@ class CloudModel(object):
             idx -= 1
         return self.cloud_values[idx]
 
-    def read_data(self):
+    def read_data(self, cloud_db=None):
         """Read the cloud data from disk.
 
         The default behavior is to use the module stored database. However, an
@@ -66,7 +64,16 @@ class CloudModel(object):
             int : The time (units=seconds) since the start of the simulation for the cloud observation.
         cloud
             float : The cloud coverage in 8ths of the sky.
+
+        Parameters
+        ----------
+        cloud_db : str, opt
+            The full path name for the cloud database. Default None,
+            which will use the database stored in the module ($SIMS_CLOUDMODEL_DIR/data/cloud.db).
         """
+        self.cloud_db = cloud_db
+        if self.cloud_db is None:
+            self.cloud_db = os.path.join(getPackageDir('sims_cloudModel'), 'data', 'cloud.db')
         with sqlite3.connect(self.cloud_db) as conn:
             cur = conn.cursor()
             query = "select c_date, cloud from Cloud order by c_date;"
