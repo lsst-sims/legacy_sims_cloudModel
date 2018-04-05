@@ -1,4 +1,4 @@
-setupRequired(utils >= 4.6.0.0)
+setupRequired(utils)
 setupOptional(sims_utils)
 
 envPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
