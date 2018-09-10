@@ -2,5 +2,4 @@ setupRequired(utils)
 setupOptional(sims_utils)
 
 envPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
-envPrepend(PATH, ${PRODUCT_DIR}/scripts)
 
