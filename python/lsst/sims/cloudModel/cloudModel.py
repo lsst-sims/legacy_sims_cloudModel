@@ -32,10 +32,11 @@ class CloudModel(object):
     def __init__ (self, config=None):
         self._configure(config=config)
         self.efd_requirements = (self._config.efd_columns, self._config.efd_delta_time)
-        self.map_requirements = ['altitude', 'azimuth']
-        self.altcol = self.map_requirements[0]
-        self.azcol = self.map_requirements[1]
-        self.cloudcol = self._config.efd_columns[0]
+        self.target_requirements = self._config.target_columns
+        self.altcol = self.target_requirements[0]
+        self.azcol = self.target_requirements[1]
+        self.efd_cloud = self._config.efd_columns[0]
+        self.model_cloud = self._config.model_keys[0]
 
     def _configure(self, config=None):
         """Configure the model. After 'configure' the model config will be frozen.
@@ -55,22 +56,21 @@ class CloudModel(object):
         self._config.validate()
         self._config.freeze()
 
-    def status(self):
+    def config_info(self):
         """Report configuration parameters and version information.
 
         Returns
         -------
         OrderedDict
         """
-        status = OrderedDict()
-        status['CloudModel_version'] = '%s' % version.__version__
-        status['CloudModel_sha'] = '%s' % version.__fingerprint__
+        config_info = OrderedDict()
+        config_info['CloudModel_version'] = '%s' % version.__version__
+        config_info['CloudModel_sha'] = '%s' % version.__fingerprint__
         for k, v in self._config.iteritems():
-            status[k] = v
-        status['map_columns'] = self.map_requirements
-        return status
+            config_info[k] = v
+        return config_info
 
-    def __call__(self, efdData, mapDict):
+    def __call__(self, efdData, targetDict):
         """Calculate the sky coverage due to clouds.
 
         This is where we'd plug in Peter's cloud transparency maps and predictions.
@@ -84,15 +84,15 @@ class CloudModel(object):
             Dictionary of input telemetry, typically from the EFD.
             This must contain columns self.efd_requirements.
             (work in progress on handling time history).
-        mapDict: dict
-            Dictionary of map values over which to calculate the processed telemetry.
-            (e.g. mapDict = {'ra': [], 'dec': [], 'altitude': [], 'azimuth': [], 'airmass': []})
-            Here we use 'altitude' and 'azimuth', which should be a numpy array.
+        targetDict: dict
+            Dictionary of target map values over which to calculate the processed telemetry.
+            (e.g. targetDict = {'ra': [], 'dec': [], 'altitude': [], 'azimuth': [], 'airmass': []})
+            Here we use 'altitude' and 'azimuth', which should be numpy arrays .
 
         Returns
         -------
-        np.ndarray
+        dict of np.ndarray
             Cloud transparency map values.
         """
-        cloud = np.zeros(len(mapDict[self.altcol]), float) + efdData[self.cloudcol]
-        return cloud
+        model_cloud = np.zeros(len(targetDict[self.altcol]), float) + efdData[self.efd_cloud]
+        return {self.model_cloud: model_cloud}

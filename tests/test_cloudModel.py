@@ -10,6 +10,8 @@ class TestCloudModel(unittest.TestCase):
         config = CloudModelConfig()
         config.efd_columns = ['cloud']
         config.efd_delta_time = 30
+        config.target_columns = ['altitude', 'azimuth']
+        config.model_keys = ['cloud']
         self.config = config
 
     def test_configure(self):
@@ -25,9 +27,9 @@ class TestCloudModel(unittest.TestCase):
 
     def test_status(self):
         cloudModel = CloudModel()
-        confDict = cloudModel.status()
+        confDict = cloudModel.config_info()
         expected_keys = ['CloudModel_version', 'CloudModel_sha', 'efd_columns', 'efd_delta_time',
-                         'map_columns']
+                         'target_columns', 'model_keys']
         for k in expected_keys:
             self.assertTrue(k in confDict.keys())
 
@@ -43,9 +45,12 @@ class TestCloudModel(unittest.TestCase):
         efdData = {'cloud': in_cloud}
         alt = np.zeros(50, float)
         az = np.zeros(50, float)
-        mapDict = {'altitude': alt, 'azimuth': az}
-        out_cloud = cloudModel(efdData, mapDict)
+        targetDict = {'altitude': alt, 'azimuth': az}
+        modelData = cloudModel(efdData, targetDict)
+        for k in self.config.model_keys:
+            self.assertTrue(k in modelData)
         # Test that we propagated cloud value over the whole sky.
+        out_cloud = modelData['cloud']
         self.assertEqual(in_cloud, out_cloud.max())
         self.assertEqual(in_cloud, out_cloud.min())
         self.assertEqual(len(out_cloud), len(alt))

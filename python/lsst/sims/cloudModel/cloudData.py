@@ -1,8 +1,8 @@
 from builtins import object
-from datetime import datetime
 import os
 import sqlite3
 import numpy as np
+from astropy.time import Time
 from lsst.utils import getPackageDir
 
 __all__ = ["CloudData"]
@@ -16,44 +16,50 @@ class CloudData(object):
 
     Parameters
     ----------
-    time_handler : :class:`lsst.sims.utils.TimeHandler`
-        The instance of the simulation time handler.
+    start_time : astropy.time.Time
+        The time of the start of the simulation.
+        The cloud database will be assumed to start on Jan 01 of the same year.
     cloud_db : str, opt
-            The full path name for the cloud database. Default None,
-            which will use the database stored in the module ($SIMS_CLOUDMODEL_DIR/data/cloud.db).
+        The full path name for the cloud database. Default None,
+        which will use the database stored in the module ($SIMS_CLOUDMODEL_DIR/data/cloud.db).
+    offset_year : float, opt
+        Offset into the cloud database by 'offset_year' years. Default 0.
     """
-    def __init__(self, time_handler, cloud_db=None):
+    def __init__(self, start_time, cloud_db=None, offset_year=0):
         self.cloud_db = cloud_db
         if self.cloud_db is None:
             self.cloud_db = os.path.join(getPackageDir('sims_cloudModel'), 'data', 'cloud.db')
 
-        model_time_start = datetime(time_handler.initial_dt.year, 1, 1)
-        self.offset = time_handler.time_since_given_datetime(model_time_start,
-                                                             reverse=True)
+        # Cloud database starts in Jan 01 of the year of the start of the simulation.
+        year_start = start_time.datetime.year + offset_year
+        self.start_time = Time('%d-01-01' % year_start, format='isot', scale='tai')
+
         self.cloud_dates = None
         self.cloud_values = None
 
-    def __call__(self, delta_time):
+    def __call__(self, time):
         """Get the cloud for the specified time.
 
         Parameters
         ----------
-        delta_time : int
-            The time (seconds) from the start of the simulation.
+        time : astropy.time.Time
+            Time in the simulation for which to find the current cloud coverage.
+            The difference between this time and the start_time, plus the offset,
+            will be used to query the cloud database for the 'current' conditions.
 
         Returns
         -------
         float
             The cloud (fraction of sky in 8ths) closest to the specified time.
         """
-        delta_time += self.offset
-        date = delta_time % self.time_range + self.min_time
-        idx = np.searchsorted(self.cloud_dates, date)
+        delta_time = (time - self.start_time).sec
+        dbdate = delta_time % self.time_range + self.min_time
+        idx = np.searchsorted(self.cloud_dates, dbdate)
         # searchsorted ensures that left < date < right
         # but we need to know if date is closer to left or to right
         left = self.cloud_dates[idx - 1]
         right = self.cloud_dates[idx]
-        if date - left < right - date:
+        if dbdate - left < right - dbdate:
             idx -= 1
         return self.cloud_values[idx]
 
