@@ -13,9 +13,7 @@ class CloudModelConfig(pexConfig.Config):
     efd_delta_time = pexConfig.Field(doc="Length (delta time) of history to request from the EFD (seconds)",
                                      dtype=float,
                                      default=0)
-    target_columns = pexConfig.ListField(doc="List of columns required from Scheduler target maps",
+    target_columns = pexConfig.ListField(doc="Names of the keys for (altitude, azimuth) from the "
+                                             "scheduler target maps",
                                          dtype=str,
                                          default=['altitude', 'azimuth'])
-    model_keys = pexConfig.ListField(doc="List of keys referring to the data returned from the model",
-                                     dtype=str,
-                                     default=['cloud'])

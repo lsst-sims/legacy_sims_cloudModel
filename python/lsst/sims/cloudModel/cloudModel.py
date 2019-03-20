@@ -25,8 +25,8 @@ class CloudModel(object):
     self.efd_requirements and self.map_requirements are also set.
     efd_requirements is a tuple: (list of str, float).
     This corresponds to the data columns required from the EFD and the amount of time history required.
-    map_requirements is a list of str.
-    This corresponds to the data columns required in the map dictionary passed when calculating the
+    target_requirements is a list of str.
+    This corresponds to the data columns required in the target map dictionary passed when calculating the
     processed telemetry values.
     """
     def __init__ (self, config=None):
@@ -36,7 +36,6 @@ class CloudModel(object):
         self.altcol = self.target_requirements[0]
         self.azcol = self.target_requirements[1]
         self.efd_cloud = self._config.efd_columns[0]
-        self.model_cloud = self._config.model_keys[0]
 
     def _configure(self, config=None):
         """Configure the model. After 'configure' the model config will be frozen.
@@ -95,4 +94,4 @@ class CloudModel(object):
             Cloud transparency map values.
         """
         model_cloud = np.zeros(len(targetDict[self.altcol]), float) + efdData[self.efd_cloud]
-        return {self.model_cloud: model_cloud}
+        return {'cloud': model_cloud}
