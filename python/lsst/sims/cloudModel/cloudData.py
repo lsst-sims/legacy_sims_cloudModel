@@ -36,6 +36,7 @@ class CloudData(object):
 
         self.cloud_dates = None
         self.cloud_values = None
+        self.read_data()
 
     def __call__(self, time):
         """Get the cloud for the specified time.
@@ -50,7 +51,7 @@ class CloudData(object):
         Returns
         -------
         float
-            The cloud (fraction of sky in 8ths) closest to the specified time.
+            The fraction of the sky that is cloudy (measured in steps of 8ths) closest to the specified time.
         """
         delta_time = (time - self.start_time).sec
         dbdate = delta_time % self.time_range + self.min_time
@@ -99,9 +100,9 @@ class CloudData(object):
 
         Returns
         -------
-        OrderedDict
+        Dict
         """
-        config_info = OrderedDict()
+        config_info = {}
         config_info['Start time for db'] = self.start_time
         config_info['Cloud database'] = self.cloud_db
         return config_info

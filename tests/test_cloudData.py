@@ -17,8 +17,6 @@ class TestCloudModel(unittest.TestCase):
 
     def test_basic_information_after_creation(self):
         cloudData = CloudData(self.th, cloud_db=self.cloud_db)
-        self.assertIsNone(cloudData.cloud_dates)
-        self.assertIsNone(cloudData.cloud_values)
         self.assertEqual(cloudData.start_time, self.th)
         cloudData = CloudData(self.th, cloud_db=self.cloud_db, offset_year = 1)
         self.assertEqual(cloudData.start_time, Time('2021-01-01', format='isot', scale='tai'))

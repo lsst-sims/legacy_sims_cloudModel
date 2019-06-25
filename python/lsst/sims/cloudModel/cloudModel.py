@@ -29,7 +29,7 @@ class CloudModel(object):
     This corresponds to the data columns required in the target map dictionary passed when calculating the
     processed telemetry values.
     """
-    def __init__ (self, config=None):
+    def __init__(self, config=None):
         self._configure(config=config)
         self.efd_requirements = (self._config.efd_columns, self._config.efd_delta_time)
         self.target_requirements = self._config.target_columns
@@ -69,7 +69,7 @@ class CloudModel(object):
             config_info[k] = v
         return config_info
 
-    def __call__(self, efdData, targetDict):
+    def __call__(self, cloud_value, altitude):
         """Calculate the sky coverage due to clouds.
 
         This is where we'd plug in Peter's cloud transparency maps and predictions.
@@ -79,19 +79,20 @@ class CloudModel(object):
 
         Parameters
         ----------
-        efdData: dict
-            Dictionary of input telemetry, typically from the EFD.
-            This must contain columns self.efd_requirements.
-            (work in progress on handling time history).
-        targetDict: dict
-            Dictionary of target map values over which to calculate the processed telemetry.
-            (e.g. targetDict = {'ra': [], 'dec': [], 'altitude': [], 'azimuth': [], 'airmass': []})
-            Here we use 'altitude' and 'azimuth', which should be numpy arrays .
+        cloud_value: float or efdData dict
+            The value to give the clouds (XXX-units?).
+        altitude:  float, np.array, or targetDict
+            Altitude of the output (arbitrary).
 
         Returns
         -------
         dict of np.ndarray
             Cloud transparency map values.
         """
-        model_cloud = np.zeros(len(targetDict[self.altcol]), float) + efdData[self.efd_cloud]
+        if isinstance(cloud_value, dict):
+            cloud_value = cloud_value[self.efd_cloud]
+        if isinstance(altitude, dict):
+            altitude = altitude[self.altcol]
+
+        model_cloud = np.zeros(len(altitude), float) + cloud_value
         return {'cloud': model_cloud}
