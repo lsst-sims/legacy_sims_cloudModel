@@ -30,7 +30,7 @@ class CloudModel(object):
     processed telemetry values.
     """
     def __init__(self, config=None):
-        self._configure(config=config)
+        self.configure(config=config)
         self.efd_requirements = (self._config.efd_columns, self._config.efd_delta_time)
         self.target_requirements = self._config.target_columns
         self.altcol = self.target_requirements[0]
