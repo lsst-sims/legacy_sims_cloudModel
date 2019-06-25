@@ -37,7 +37,7 @@ class CloudModel(object):
         self.azcol = self.target_requirements[1]
         self.efd_cloud = self._config.efd_columns[0]
 
-    def _configure(self, config=None):
+    def configure(self, config=None):
         """Configure the model. After 'configure' the model config will be frozen.
 
         Parameters
