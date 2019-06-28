@@ -1,92 +1,98 @@
 from builtins import object
-from datetime import datetime
-import os
-import sqlite3
+from collections import OrderedDict
 import numpy as np
-from lsst.utils import getPackageDir
+from .cloudModelConfig import CloudModelConfig
+from lsst.sims.cloudModel import version
+
 
 __all__ = ["CloudModel"]
 
 
 class CloudModel(object):
-    """Handle the cloud information.
+    """LSST cloud calculations for cloud extinction.
+    Currently this actually only returns the cloud coverage of the sky, exactly as reported in the
+    cloud database (thus the sky coverage, in fractions of 8ths).
 
-    This class deals with the cloud information that was previously produced for
-    OpSim version 3.
 
     Parameters
     ----------
-    time_handler : :class:`lsst.sims.utils.TimeHandler`
-        The instance of the simulation time handler.
-    """
-    def __init__(self, time_handler):
-        self.cloud_db = None
-        model_time_start = datetime(time_handler.initial_dt.year, 1, 1)
-        self.offset = time_handler.time_since_given_datetime(model_time_start,
-                                                             reverse=True)
-        self.cloud_dates = None
-        self.cloud_values = None
+    config: CloudModelConfig, opt
+        A configuration class for the cloud model.
+        This can be None, in which case the default CloudModelConfig is used.
+        The user should set any non-default values for CloudModelConfig before
+        configuration of the actual CloudModel.
 
-    def get_cloud(self, delta_time):
-        """Get the cloud for the specified time.
+    self.efd_requirements and self.map_requirements are also set.
+    efd_requirements is a tuple: (list of str, float).
+    This corresponds to the data columns required from the EFD and the amount of time history required.
+    target_requirements is a list of str.
+    This corresponds to the data columns required in the target map dictionary passed when calculating the
+    processed telemetry values.
+    """
+    def __init__(self, config=None):
+        self.configure(config=config)
+        self.efd_requirements = (self._config.efd_columns, self._config.efd_delta_time)
+        self.target_requirements = self._config.target_columns
+        self.altcol = self.target_requirements[0]
+        self.azcol = self.target_requirements[1]
+        self.efd_cloud = self._config.efd_columns[0]
+
+    def configure(self, config=None):
+        """Configure the model. After 'configure' the model config will be frozen.
 
         Parameters
         ----------
-        delta_time : int
-            The time (seconds) from the start of the simulation.
+        config: CloudModelConfig, opt
+            A configuration class for the cloud model.
+            This can be None, in which case the default values are used.
+        """
+        if config is None:
+            self._config = CloudModelConfig()
+        else:
+            if not isinstance(config, CloudModelConfig):
+                raise ValueError('Must use a CloudModelConfig.')
+            self._config = config
+        self._config.validate()
+        self._config.freeze()
+
+    def config_info(self):
+        """Report configuration parameters and version information.
 
         Returns
         -------
-        float
-            The cloud (fraction of sky in 8ths) closest to the specified time.
+        OrderedDict
         """
-        delta_time += self.offset
-        date = delta_time % self.time_range + self.min_time
-        idx = np.searchsorted(self.cloud_dates, date)
-        # searchsorted ensures that left < date < right
-        # but we need to know if date is closer to left or to right
-        left = self.cloud_dates[idx - 1]
-        right = self.cloud_dates[idx]
-        if date - left < right - date:
-            idx -= 1
-        return self.cloud_values[idx]
+        config_info = OrderedDict()
+        config_info['CloudModel_version'] = '%s' % version.__version__
+        config_info['CloudModel_sha'] = '%s' % version.__fingerprint__
+        for k, v in self._config.iteritems():
+            config_info[k] = v
+        return config_info
 
-    def read_data(self, cloud_db=None):
-        """Read the cloud data from disk.
+    def __call__(self, cloud_value, altitude):
+        """Calculate the sky coverage due to clouds.
 
-        The default behavior is to use the module stored database. However, an
-        alternate database file can be provided. The alternate database file needs to have a
-        table called *Cloud* with the following columns:
-
-        cloudId
-            int : A unique index for each cloud entry.
-        c_date
-            int : The time (units=seconds) since the start of the simulation for the cloud observation.
-        cloud
-            float : The cloud coverage in 8ths of the sky.
+        This is where we'd plug in Peter's cloud transparency maps and predictions.
+        We could also try translating cloud transparency into a cloud extinction.
+        For now, we're simply returning the cloud coverage that we already got from the database,
+        but multiplied over the whole sky to provide a map.
 
         Parameters
         ----------
-        cloud_db : str, opt
-            The full path name for the cloud database. Default None,
-            which will use the database stored in the module ($SIMS_CLOUDMODEL_DIR/data/cloud.db).
+        cloud_value: float or efdData dict
+            The value to give the clouds (XXX-units?).
+        altitude:  float, np.array, or targetDict
+            Altitude of the output (arbitrary).
+
+        Returns
+        -------
+        dict of np.ndarray
+            Cloud transparency map values.
         """
-        self.cloud_db = cloud_db
-        if self.cloud_db is None or self.cloud_db is "":
-            self.cloud_db = os.path.join(getPackageDir('sims_cloudModel'), 'data', 'cloud.db')
-        with sqlite3.connect(self.cloud_db) as conn:
-            cur = conn.cursor()
-            query = "select c_date, cloud from Cloud order by c_date;"
-            cur.execute(query)
-            results = np.array(cur.fetchall())
-            self.cloud_dates = np.hsplit(results, 2)[0].flatten()
-            self.cloud_values = np.hsplit(results, 2)[1].flatten()
-            cur.close()
-        # Make sure seeing dates are ordered appropriately (monotonically increasing).
-        ordidx = self.cloud_dates.argsort()
-        self.cloud_dates = self.cloud_dates[ordidx]
-        self.cloud_values = self.cloud_values[ordidx]
-        # Record this information, in case the cloud database does not start at t=0.
-        self.min_time = self.cloud_dates[0]
-        self.max_time = self.cloud_dates[-1]
-        self.time_range = self.max_time - self.min_time
+        if isinstance(cloud_value, dict):
+            cloud_value = cloud_value[self.efd_cloud]
+        if isinstance(altitude, dict):
+            altitude = altitude[self.altcol]
+
+        model_cloud = np.zeros(len(altitude), float) + cloud_value
+        return {'cloud': model_cloud}

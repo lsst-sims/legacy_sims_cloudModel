@@ -1,4 +1,5 @@
 setupRequired(utils)
+setupRequired(pex_config)
 setupOptional(sims_utils)
 
 envPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
