@@ -41,7 +41,7 @@ class TestCloudModel(unittest.TestCase):
         self.assertEqual(cloudData(self.th + dt), 0.5)
         dt = TimeDelta(705000, format='sec')
         self.assertEqual(cloudData(self.th + dt), 0.375)
-        dt = TimeDelta(630684000, format='sec')
+        dt = TimeDelta(6306840, format='sec')
         self.assertEqual(cloudData(self.th + dt), 0.0)
 
     def test_get_clouds_using_different_start_month(self):
@@ -52,7 +52,7 @@ class TestCloudModel(unittest.TestCase):
         cloud1.read_data()
         dt = TimeDelta(700000, format='sec')
         self.assertEqual(cloud1(t2 + dt), 0.0)
-        dt = TimeDelta(630684000, format='sec')
+        dt = TimeDelta(6306840, format='sec')
         self.assertEqual(cloud1(t2 + dt), 0.25)
 
     def test_alternate_db(self):

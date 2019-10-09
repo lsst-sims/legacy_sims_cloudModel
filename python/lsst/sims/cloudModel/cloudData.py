@@ -24,8 +24,10 @@ class CloudData(object):
         which will use the database stored in the module ($SIMS_CLOUDMODEL_DIR/data/cloud.db).
     offset_year : float, opt
         Offset into the cloud database by 'offset_year' years. Default 0.
+    scale : float (1e6)
+        Enforce machine precision for cross-platform repeatability by scaling and rounding date values.
     """
-    def __init__(self, start_time, cloud_db=None, offset_year=0):
+    def __init__(self, start_time, cloud_db=None, offset_year=0, scale=1e6):
         self.cloud_db = cloud_db
         if self.cloud_db is None:
             self.cloud_db = os.path.join(getPackageDir('sims_cloudModel'), 'data', 'cloud.db')
@@ -36,6 +38,7 @@ class CloudData(object):
 
         self.cloud_dates = None
         self.cloud_values = None
+        self.scale = scale
         self.read_data()
 
     def __call__(self, time):
@@ -55,6 +58,8 @@ class CloudData(object):
         """
         delta_time = (time - self.start_time).sec
         dbdate = delta_time % self.time_range + self.min_time
+        if self.scale is not None:
+            dbdate = np.round(dbdate*self.scale).astype(int)
         idx = np.searchsorted(self.cloud_dates, dbdate)
         # searchsorted ensures that left < date < right
         # but we need to know if date is closer to left or to right
@@ -89,6 +94,8 @@ class CloudData(object):
         # Make sure seeing dates are ordered appropriately (monotonically increasing).
         ordidx = self.cloud_dates.argsort()
         self.cloud_dates = self.cloud_dates[ordidx]
+        if self.scale is not None:
+            self.cloud_dates = np.round(self.cloud_dates*self.scale).astype(int)
         self.cloud_values = self.cloud_values[ordidx]
         # Record this information, in case the cloud database does not start at t=0.
         self.min_time = self.cloud_dates[0]
