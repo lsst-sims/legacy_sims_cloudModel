@@ -30,6 +30,7 @@ class CloudModel(object):
     processed telemetry values.
     """
     def __init__(self, config=None):
+        self._config = None
         self.configure(config=config)
         self.efd_requirements = (self._config.efd_columns, self._config.efd_delta_time)
         self.target_requirements = self._config.target_columns
@@ -48,10 +49,16 @@ class CloudModel(object):
         """
         if config is None:
             self._config = CloudModelConfig()
-        else:
-            if not isinstance(config, CloudModelConfig):
-                raise ValueError('Must use a CloudModelConfig.')
+        elif isinstance(config, dict):
+            self._config = CloudModelConfig()
+            for key in config:
+                setattr(self._config, key, config[key])
+        elif isinstance(config, CloudModelConfig):
             self._config = config
+        else:
+            raise RuntimeError(f'Expecting `None`, dictionary or `CloudModelConfig`, '
+                               f'got {type(config)}: {config!r}.')
+
         self._config.validate()
         self._config.freeze()
 
