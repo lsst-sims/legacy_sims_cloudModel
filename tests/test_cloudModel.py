@@ -22,7 +22,7 @@ class TestCloudModel(unittest.TestCase):
         cloudModel = CloudModel(self.config)
         self.assertEqual(cloudModel._config.efd_delta_time, self.config.efd_delta_time)
         # Test specifying an incorrect config.
-        self.assertRaises(ValueError, CloudModel, 0.8)
+        self.assertRaises(RuntimeError, CloudModel, 0.8)
 
     def test_status(self):
         cloudModel = CloudModel()
